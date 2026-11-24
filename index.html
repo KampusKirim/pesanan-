@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KampusKirim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--pg:#13845B;--btn:#13845B;--btnfg:#fff;--ink:#153A2D;--mint:#E7F7EF;--cream:#FFF9F0;--or:#FFB44A;--sky:#DCEEFF;--bg:#F5F8F6;--mut:#66746D;--err:#B33A3A;--card:#fff;--line:#d5e1da;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg:#4CC795;--btn:#4CC795;--btnfg:#0d2a20;--ink:#e8f3ed;--mint:#1c3a2e;--cream:#2a2418;--sky:#1c2f42;--bg:#0f1a15;--mut:#9db0a6;--err:#ff9a9a;--card:#16241e;--line:#2b3d34;color-scheme:dark}}
+:root[data-theme="dark"]{--pg:#4CC795;--btn:#4CC795;--btnfg:#0d2a20;--ink:#e8f3ed;--mint:#1c3a2e;--cream:#2a2418;--sky:#1c2f42;--bg:#0f1a15;--mut:#9db0a6;--err:#ff9a9a;--card:#16241e;--line:#2b3d34;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 Inter,system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--card)}
+h1,h2,h3,.logo{font-family:Poppins,Inter,sans-serif;margin:0}
+h1{font-weight:600;font-size:26px;line-height:1.25}
+h2{font-weight:500;font-size:17px;margin:28px 0 12px}
+a{color:var(--pg)}
+:focus-visible{outline:3px solid var(--or);outline-offset:2px}
+.side{position:fixed;inset:0 auto 0 0;width:264px;background:var(--mint);padding:calc(20px + env(safe-area-inset-top,0px)) 16px 20px;display:flex;flex-direction:column;gap:6px;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s;overflow-y:auto}
+.open .side{transform:none;visibility:visible}
+.bd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35}.open .bd{display:block}
+.logo{font-size:21px;font-weight:600;color:var(--ink);margin-bottom:12px}.logo i{font-style:normal}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:12px;color:var(--ink);text-decoration:none;font-weight:600}
+.nav a:hover{background:var(--card)}.nav a[aria-current]{background:var(--btn);color:var(--btnfg)}
+.sf{margin-top:auto;font-size:13px;color:var(--mut)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.main{padding:20px 16px 48px;max-width:1120px;margin:0 auto}
+@media(min-width:1200px){.side{transform:none;visibility:visible}.main{margin-left:264px;padding:32px 40px 64px;max-width:none}.top,.xbtn{display:none}.wrap{max-width:1120px}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:2px solid var(--btn);border-radius:12px;background:var(--btn);color:var(--btnfg);font:600 15px Inter,sans-serif;text-decoration:none;cursor:pointer}
+.btn.sec{background:transparent;color:var(--pg)}.btn.ghost{background:transparent;border-color:transparent;color:var(--pg)}
+.btn.full{width:100%}.btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.btn:active{transform:translateY(1px)}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.ph{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:16px}
+.chip{display:inline-block;padding:4px 12px;border-radius:99px;background:var(--mint);color:var(--ink);font-size:13px;font-weight:600}
+.hero{display:grid;gap:16px;align-items:center;background:var(--cream);border-radius:16px;padding:24px;border:1px solid var(--line)}
+.hero p{margin:10px 0 18px;max-width:46ch}.hero .art{font-size:56px;text-align:center;letter-spacing:8px}
+@media(min-width:760px){.hero{grid-template-columns:1.4fr 1fr;padding:32px}h1{font-size:28px}}
+.grid3{display:grid;gap:14px}@media(min-width:760px){.grid3{grid-template-columns:1fr 1fr}}@media(min-width:1200px){.grid3{grid-template-columns:repeat(3,1fr)}}
+.card,.sv{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.sv{display:flex;flex-direction:column;gap:8px;text-align:left;color:var(--ink);font:inherit}
+.sv .ic{font-size:34px}.sv h3{font-weight:500;font-size:17px}.sv p{margin:0;color:var(--mut)}.sv small{color:var(--mut)}.sv .btn{margin-top:auto}
+.steps{display:grid;gap:10px;padding:0;margin:0;list-style:none;counter-reset:s}@media(min-width:760px){.steps{grid-template-columns:repeat(4,1fr)}}
+.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;font-weight:600}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;margin-right:10px;border-radius:50%;background:var(--or);color:#153A2D}
+.info{border-radius:16px;padding:14px 16px;margin:12px 0}.info.mint{background:var(--mint)}.info.sky{background:var(--sky)}.info p{margin:0 0 10px}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px 18px 18px;margin-bottom:14px}
+.cols{display:grid;gap:0 16px}@media(min-width:760px){.cols{grid-template-columns:1fr 1fr}}
+.fld{display:flex;flex-direction:column;gap:6px;margin-top:14px}.fld.full{grid-column:1/-1}
+label{font-weight:600;font-size:14px}
+input,select,textarea{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{resize:vertical}input::placeholder,textarea::placeholder{color:var(--mut)}
+[aria-invalid="true"]{border-color:var(--err)}
+small{color:var(--mut);font-size:13px}.er{color:var(--err);font-size:13px;font-weight:600}
+.item{border:1.5px dashed var(--line);border-radius:12px;padding:4px 14px 14px;margin-top:14px;display:grid;gap:0 12px}
+@media(min-width:760px){.item{grid-template-columns:2fr 1fr 2fr}.item b,.item .btn{grid-column:1/-1}}
+.item b{margin-top:10px}.item .btn{margin-top:12px;justify-self:start}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-weight:400}.chk input{width:22px;min-height:22px;margin-top:2px;flex:none}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+@media(max-width:759px){.row .btn.main{width:100%}}
+.rw{display:grid;gap:2px;padding:10px 0;border-bottom:1px solid var(--line)}.rw:last-child{border:0}.rw span{font-size:13px;color:var(--mut)}.rw b{font-weight:600;white-space:pre-line;overflow-wrap:anywhere}
+@media(min-width:760px){.rw{grid-template-columns:200px 1fr;gap:12px}}
+.errs{background:var(--card);border:2px solid var(--err);border-radius:12px;padding:12px 16px;margin-bottom:14px;color:var(--err);font-weight:600}
+.prog{color:var(--mut);font-weight:600;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--sky);color:var(--ink)}
+.oc{display:grid;gap:6px}.oc .row{margin-top:6px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px}summary{cursor:pointer;font-weight:600;min-height:28px}details p{margin:8px 0 0}
+.filt{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.filt .btn[aria-pressed="true"]{background:var(--btn);color:var(--btnfg)}
+.empty{text-align:center;padding:32px 16px}.empty .ic{font-size:48px}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:60;max-width:90vw;display:none;font-weight:600}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);padding:20px;max-width:360px}dialog::backdrop{background:rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="bd" data-act="close"></div>
+<aside class="side" id="side" aria-label="Navigasi utama">
+  <div style="display:flex;justify-content:space-between;align-items:center"><div class="logo">Kampus<i style="color:var(--pg)">Kirim</i></div><button class="btn ghost sm xbtn" data-act="close" aria-label="Tutup menu">✕ Tutup</button></div>
+  <nav class="nav">
+    <a href="#beranda">🏠 Beranda</a><a href="#pesan">🛵 Buat Pesanan</a><a href="#pesanan-saya">🧾 Pesanan Saya</a><a href="#bantuan">💬 Bantuan</a>
+    <a id="wh" target="_blank" rel="noopener" href="#">📲 Hubungi Admin</a>
+  </nav>
+  <div class="sf">Admin menjawab lewat WhatsApp. Biaya dan ketersediaan dikonfirmasi admin.<br>Versi MVP 0.1</div>
+</aside>
+<header class="top"><button class="btn sec sm" id="mbtn" data-act="menu" aria-controls="side" aria-expanded="false">☰ Menu</button><span class="logo" style="font-size:18px">KampusKirim</span></header>
+<main class="main"><div class="wrap" id="v"></div></main>
+</div>
+<div id="toast" role="status"></div>
+<dialog id="dlg"><p>Hapus pesanan ini dari perangkat? Tindakan ini tidak bisa dibatalkan.</p><div class="row"><button class="btn sec" data-act="delno">Batal</button><button class="btn" data-act="delok">Hapus</button></div></dialog>
+<script>
+const ADM=["+62 812-6417-6866","+62 812-6071-6634","+62 821-6085-1111","+62 822-7781-7288","+62 838-3460-0353"];
+const SV={
+ food:{n:"Antar Makanan",ic:"🍜",d:"Beli dan antar makanan dari warung, kantin, atau penjual di area layanan.",ex:"Contoh: nasi goreng dari kantin ke kos"},
+ jastip:{n:"Jastip",ic:"🛍️",d:"Titip beli barang kebutuhan dari toko tertentu.",ex:"Contoh: alat tulis dari toko buku"},
+ barang:{n:"Antar Barang",ic:"📦",d:"Kirim barang ringan seperti dokumen, buku, dan alat tulis.",ex:"Contoh: map tugas ke gedung lain"}};
+const ST={draft:"Draft",wa:"WhatsApp dibuka",sent:"Saya menandai sudah dikirim"};
+const mem={};
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return k in mem?mem[k]:d}},set(k,v){mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dg=s=>s.replace(/\D/g,"");
+const norm=v=>{let n=String(v||"").replace(/[\s\-().+]/g,"");if(!/^\d+$/.test(n))return"";if(n[0]==="0")n="62"+n.slice(1);if(n.slice(0,2)!=="62"||n.length<10||n.length>15)return"";return n};
+const dr=ls.get("kk_draft",null);
+const S={svc:dr?dr.svc:"",d:dr?dr.d:{},items:dr?dr.items:[{}],step:"pilih",cid:null,msg:"",f:"all",detail:null,del:null,adm:(ls.get("kk_adm",0))%ADM.length};
+const waUrl=(i,m)=>"https://wa.me/"+dg(ADM[i])+"?text="+encodeURIComponent(m);
+function toast(m){const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4500)}
+function persist(){ls.set("kk_draft",{svc:S.svc,d:S.d,items:S.items})}
+
+/* views */
+const cards=pick=>Object.keys(SV).map(k=>`<button class="sv" type="button" data-act="pick" data-s="${k}"><span class="ic" aria-hidden="true">${SV[k].ic}</span><h3>${SV[k].n}</h3><p>${SV[k].d}</p><small>${SV[k].ex}</small><span class="btn ${pick?"":"sec"}">${pick?"Pilih "+SV[k].n:"Pilih layanan"}</span></button>`).join("");
+const home=()=>`<section class="hero"><div><span class="chip">Sekitar UNIMED</span><h1 tabindex="-1" style="margin-top:12px">Butuh sesuatu? Biar kami bantu antar.</h1><p>Layanan antar makanan, jastip, dan barang ringan di sekitar kampus dan kos.</p><a class="btn" href="#pesan">Pesan Sekarang</a></div><div class="art" aria-hidden="true">🛵📦🍜</div></section>
+<h2>Pilih kebutuhanmu</h2><div class="grid3">${cards(false)}</div>
+<h2>Cara kerja</h2><ol class="steps"><li>Pilih layanan</li><li>Isi detail</li><li>Periksa pesanan</li><li>Kirim ke WhatsApp admin</li></ol>
+<h2>Area layanan</h2><div class="info mint">Rencana area: kampus utama UNIMED dan kos di sekitarnya. Batas rinci dan titik temu dikonfirmasi admin sebelum pesanan diproses.</div>
+<h2>Kepercayaan dan bantuan</h2><div class="info sky"><p>Biaya dan estimasi dikonfirmasi admin lewat WhatsApp. Pesanan baru dianggap terkonfirmasi setelah admin membalas.</p><a href="#bantuan">Baca FAQ</a></div>`;
+
+const pilih=()=>`<div class="ph"><h1 tabindex="-1">Layanan apa yang kamu butuhkan?</h1><span class="chip">Sekitar UNIMED</span></div><p>Pilih jenis bantuan yang paling sesuai. Detail pesanan diisi pada langkah berikutnya.</p><div class="grid3">${cards(true)}</div><div class="info sky">Ketersediaan layanan, biaya, dan estimasi akan dikonfirmasi admin. <a href="#bantuan">Baca FAQ</a></div>`;
+
+const fld=(k,l,o={})=>{const v=esc(S.d[k]||""),id="f_"+k,p=`placeholder="${esc(o.p||"")}"`;
+ const inp=o.t==="area"?`<textarea id="${id}" data-k="${k}" rows="3" ${p}>${v}</textarea>`:o.t==="sel"?`<select id="${id}" data-k="${k}"><option value="">Pilih perkiraan</option>${o.o.map(x=>`<option ${S.d[k]===x?"selected":""}>${x}</option>`).join("")}</select>`:`<input id="${id}" data-k="${k}" type="${o.t||"text"}" ${o.t==="number"?'min="1" inputmode="numeric"':""} ${o.t==="tel"?'inputmode="tel" autocomplete="tel"':""} value="${v}" ${p}>`;
+ return `<div class="fld ${o.w?"full":""}"><label for="${id}">${l}${o.r?" *":""}</label>${inp}${o.h?`<small>${o.h}</small>`:""}<span class="er" id="e_${id}"></span></div>`};
+const sec=(t,b)=>`<section class="sec"><h2>${t}</h2><div class="cols">${b}</div></section>`;
+const itemsUi=cols=>`<div class="full" style="grid-column:1/-1">`+S.items.map((it,i)=>`<div class="item"><b>Item ${i+1}</b>`+cols.map(c=>`<div class="fld"><label for="i${i}${c.k}">${c.l}${c.r?" *":""}</label><input id="i${i}${c.k}" data-i="${i}" data-k="${c.k}" type="${c.t||"text"}" ${c.t==="number"?'min="1" inputmode="numeric"':""} value="${esc(it[c.k]||"")}" placeholder="${esc(c.p||"")}"><span class="er" id="e_i${i}${c.k}"></span></div>`).join("")+(S.items.length>1?`<button type="button" class="btn sec sm" data-act="rm" data-i="${i}">Hapus item ${i+1}</button>`:"")+`</div>`).join("")+`<div class="row"><button type="button" class="btn sec" data-act="add">+ Tambah item</button></div></div>`;
+function form(){const s=S.svc;
+ let h=`<div class="ph"><h1 tabindex="-1">Form ${SV[s].n}</h1><span class="chip">Sekitar UNIMED</span></div><div class="prog">Langkah 1 dari 2 · Isi detail ${s==="barang"?"pengiriman":"pesanan"}</div><div id="errs" role="alert"></div><div class="info mint">Kolom bertanda * wajib diisi. Biaya tidak dihitung di website; admin menyampaikan estimasi setelah pesanan diperiksa.</div>`;
+ h+=sec(s==="barang"?"Data pengirim":"Data pemesan",fld("name","Nama lengkap",{r:1,p:"Contoh: Budi Santoso"})+fld("wa","Nomor WhatsApp",{r:1,t:"tel",p:"08xxxxxxxxxx atau 62xxxxxxxxxx"}));
+ if(s==="barang"){
+  h+=sec("Detail barang",fld("type","Jenis barang",{r:1,p:"Contoh: dokumen tugas",h:"Hanya untuk barang ringan. Jenis barang tetap harus disetujui admin."})+fld("koli","Jumlah koli",{r:1,t:"number",p:"1"})+fld("size","Ukuran perkiraan",{t:"sel",o:["Kecil","Sedang","Besar"]})+fld("handling","Catatan penanganan",{p:"Contoh: jangan dilipat"}));
+  h+=sec("Lokasi pengambilan",fld("pickup","Alamat atau patokan pengambilan",{r:1,t:"area",w:1,p:"Nama jalan, gedung, atau patokan"})+fld("pickupContact","Nama kontak di lokasi (opsional)"));
+  h+=sec("Lokasi tujuan",fld("dest","Alamat atau patokan tujuan",{r:1,t:"area",w:1,p:"Nama jalan, gedung, atau patokan"})+fld("recv","Nama penerima",{r:1})+fld("recvPhone","Nomor penerima (jika berbeda)",{t:"tel"}));
+  h+=sec("Waktu",fld("time","Waktu pengambilan yang diinginkan (opsional)",{p:"Contoh: hari ini jam 14.00"}));
+ }else{
+  const f=s==="food";
+  h+=sec(f?"Lokasi pembelian":"Toko tujuan",fld("shop",f?"Nama warung/restoran/kantin":"Nama toko/tempat pembelian",{r:1,h:f?"":"Boleh berupa kategori toko bila belum tahu namanya."})+fld("shopAddr","Alamat atau patokan lokasi",{r:1,t:"area",w:1,p:"Nama jalan, gedung, atau patokan"}));
+  h+=sec(f?"Detail menu":"Daftar barang",itemsUi(f?[{k:"name",l:"Nama makanan/minuman",r:1,p:"Contoh: Nasi goreng"},{k:"qty",l:"Jumlah",r:1,t:"number",p:"1"},{k:"note",l:"Varian/catatan (opsional)",p:"Contoh: tidak pedas"}]:[{k:"name",l:"Nama barang",r:1,p:"Contoh: Buku tulis"},{k:"qty",l:"Jumlah",r:1,t:"number",p:"1"},{k:"note",l:"Varian/ukuran/rasa (opsional)",p:"Contoh: ukuran A5"}]));
+  if(!f)h+=sec("Batas pembelian",fld("budget","Batas anggaran total (opsional, rupiah)",{t:"number",h:"Batas harga barang, belum termasuk ongkos layanan/antar."})+`<label class="chk full"><input type="checkbox" data-k="sub" ${S.d.sub?"checked":""}> Boleh diganti barang serupa jika stok kosong. Jika tidak dicentang, admin akan meminta persetujuanmu dulu.</label>`);
+  h+=sec(f?"Tujuan antar":"Lokasi antar",fld("dest","Alamat tujuan",{r:1,t:"area",w:1,p:"Nama jalan, gedung/kos"})+fld("landmark",f?"Patokan gedung/kos":"Patokan lokasi",{r:1})+fld("time","Waktu yang diinginkan (opsional)"));
+  h+=sec("Catatan",fld("note",f?"Catatan untuk kurir":"Preferensi tambahan",{t:"area",w:1,p:f?"Contoh: hubungi saat tiba":"Instruksi pembelian"}));
+ }
+ return h+`<div class="row"><button class="btn sec" data-act="backPick">Kembali</button><button class="btn main" data-act="toReview">Periksa Pesanan</button></div>`}
+
+function validate(){const e=[],d=S.d,s=S.svc,t=k=>(d[k]||"").trim();
+ const add=(id,m)=>e.push([id,m]);
+ if(t("name").length<2)add("f_name","Masukkan nama lengkap agar admin tahu siapa pemesan.");
+ if(!norm(d.wa))add("f_wa","Periksa kembali nomor WhatsApp. Gunakan nomor yang aktif.");
+ const addr=(k,l)=>{if(t(k).length<8)add("f_"+k,"Tambahkan nama jalan, gedung/kos, atau patokan lokasi ("+l+").")};
+ if(s==="barang"){
+  if(!t("type"))add("f_type","Isi jenis barang yang akan dikirim.");
+  if(!(parseInt(d.koli)>=1))add("f_koli","Jumlah koli minimal 1.");
+  addr("pickup","pengambilan");addr("dest","tujuan");
+  if(!t("recv"))add("f_recv","Isi nama penerima.");
+  if(t("recvPhone")&&!norm(d.recvPhone))add("f_recvPhone","Periksa kembali nomor penerima.");
+ }else{
+  if(!t("shop"))add("f_shop",s==="food"?"Isi nama warung/restoran/kantin.":"Isi nama toko atau kategori toko.");
+  addr("shopAddr","lokasi penjual");addr("dest","tujuan");
+  if(!t("landmark"))add("f_landmark","Isi patokan gedung/kos agar kurir mudah menemukan.");
+  S.items.forEach((it,i)=>{if(!(it.name||"").trim())add(`i${i}name`,"Masukkan nama item yang ingin dipesan.");if(!(parseInt(it.qty)>=1))add(`i${i}qty`,"Jumlah minimal 1.")});
+ }
+ return e}
+function showErr(e){document.querySelectorAll(".er").forEach(x=>x.textContent="");document.querySelectorAll("[aria-invalid]").forEach(x=>x.removeAttribute("aria-invalid"));
+ e.forEach(([id,m])=>{const el=document.getElementById(id),er=document.getElementById("e_"+id);if(er)er.textContent=m;if(el){el.setAttribute("aria-invalid","true");el.setAttribute("aria-describedby","e_"+id)}});
+ const b=$("#errs");if(b)b.innerHTML=e.length?`<div class="errs">Ada ${e.length} isian yang perlu diperbaiki. Periksa kolom yang ditandai.</div>`:"";
+ if(e.length){const el=document.getElementById(e[0][0]);if(el)el.focus()}}
+
+const itl=(s,it)=>it.map((x,i)=>`${i+1}. ${x.name} ×${parseInt(x.qty)||1}${x.note?" ("+x.note+")":""}`);
+const sr=r=>{const d=r.d,s=r.svc;const x=[["Layanan",SV[s].n],["Pemesan",`${d.name} · +${norm(d.wa)}`]];
+ if(s==="barang"){x.push(["Barang",`${d.type}, ${parseInt(d.koli)} koli${d.size?", ukuran "+d.size:""}`],["Penanganan",d.handling],["Lokasi pengambilan",d.pickup+(d.pickupContact?` (kontak: ${d.pickupContact})`:"")],["Tujuan",d.dest],["Penerima",d.recv+(d.recvPhone?` · +${norm(d.recvPhone)}`:"")])}
+ else{x.push([s==="food"?"Lokasi penjual":"Toko",`${d.shop} — ${d.shopAddr}`],["Daftar",itl(s,r.items).join("\n")]);
+  if(s==="jastip")x.push(["Batas anggaran barang",d.budget?`Rp ${d.budget} (belum termasuk ongkos)`:""],["Barang pengganti",d.sub?"Boleh diganti barang serupa jika stok kosong":"Jangan diganti tanpa persetujuan saya"]);
+  x.push(["Alamat tujuan",`${d.dest} (patokan: ${d.landmark})`])}
+ x.push(["Waktu",d.time],["Catatan",d.note]);return x};
+const rows=r=>sr(r).filter(x=>x[1]).map(x=>`<div class="rw"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
+const buildMsg=r=>`Halo Admin KampusKirim, saya ingin memesan layanan ${SV[r.svc].n}.\n\n`+sr(r).filter(x=>x[1]).slice(1).map(x=>`*${x[0]}*: ${x[1]}`).join("\n")+"\n\nMohon konfirmasi ketersediaan, biaya, serta estimasi waktu. Terima kasih.";
+function save(st){const a=ls.get("kk_orders",[]);let r=a.find(x=>x.id===S.cid);const b={svc:S.svc,d:{...S.d},items:S.items.map(i=>({...i})),msg:S.msg};
+ if(r){Object.assign(r,b);if(st)r.st=st}else{S.cid="KK-"+Date.now().toString(36).toUpperCase();r={id:S.cid,ts:Date.now(),st:st||"draft",...b};a.unshift(r)}
+ ls.set("kk_orders",a);return r}
+
+const review=()=>{const r={svc:S.svc,d:S.d,items:S.items};return `<div class="ph"><h1 tabindex="-1">Periksa pesananmu</h1></div><div class="prog">Langkah 2 dari 2 · Periksa sebelum ke WhatsApp</div><div class="card">${rows(r)}</div><div class="info sky">Biaya dan ketersediaan akan dikonfirmasi admin melalui WhatsApp.</div><label class="chk"><input type="checkbox" id="chk"> Saya sudah memeriksa detail pesanan.</label><span class="er" id="e_chk"></span><div class="row"><button class="btn sec" data-act="edit">Ubah pesanan</button><button class="btn main" data-act="toWa">Lanjut ke WhatsApp</button></div>`};
+
+const wa=()=>`<div class="ph"><h1 tabindex="-1">Lanjutkan di WhatsApp</h1></div><div class="card"><h2 style="margin-top:0">Pesananmu sudah disiapkan.</h2><ol><li>WhatsApp akan membuka chat dengan Admin KampusKirim.</li><li>Periksa pesan yang sudah terisi dan pastikan semua detail benar.</li><li>Tekan tombol “Kirim” di WhatsApp untuk mengirim pesanan.</li></ol>
+<div class="fld"><label for="adm">Admin yang dihubungi</label><select id="adm">${ADM.map((n,i)=>`<option value="${i}" ${i===S.adm?"selected":""}>Admin ${i+1} · ${n}</option>`).join("")}</select></div>
+<div class="row"><a id="wal" class="btn main" target="_blank" rel="noopener" href="${waUrl(S.adm,S.msg)}" data-act="open">Buka WhatsApp</a><button class="btn sec" data-act="copy">Salin template pesan</button><button class="btn ghost" data-act="edit2">Kembali ke ringkasan</button></div>
+<div id="after" hidden class="info mint"><p>Sudah menekan Kirim di WhatsApp? Penanda ini hanya catatan di perangkatmu, bukan konfirmasi admin.</p><button class="btn" data-act="sent">Saya sudah menekan Kirim</button></div>
+<div class="info sky">WhatsApp tidak terbuka? Salin pesan di bawah lalu kirim manual ke nomor admin.</div>
+<label for="msgbox" class="sr" style="font-size:13px">Template pesan</label><textarea id="msgbox" readonly rows="10">${esc(S.msg)}</textarea></div>`;
+
+const order=()=>S.step==="pilih"||!S.svc?pilih():S.step==="form"?form():S.step==="review"?review():wa();
+
+const hist=()=>{const a=ls.get("kk_orders",[]);
+ if(S.detail){const r=a.find(x=>x.id===S.detail);if(r)return `<div class="ph"><h1 tabindex="-1">Detail ${r.id}</h1></div><p><span class="badge">${ST[r.st]}</span> Dibuat ${new Date(r.ts).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><div class="card">${rows(r)}</div><h2>Template pesan</h2><textarea id="msgbox" readonly rows="9">${esc(r.msg)}</textarea><div class="row"><button class="btn sec" data-act="back">Kembali</button><button class="btn" data-act="copy" data-id="${r.id}">Salin pesan</button><a class="btn sec" target="_blank" rel="noopener" href="${waUrl(S.adm,"Halo Admin KampusKirim, saya ingin bertanya.")}">Hubungi admin</a>${r.st!=="sent"?`<button class="btn sec" data-act="mark" data-id="${r.id}">Saya sudah menekan Kirim</button>`:""}<button class="btn ghost" data-act="del" data-id="${r.id}">Hapus dari perangkat</button></div>`;S.detail=null}
+ const l=a.filter(x=>S.f==="all"||x.st===S.f);
+ return `<div class="ph"><h1 tabindex="-1">Pesanan Saya</h1></div><div class="info mint">Riwayat ini tersimpan di browser/perangkat ini. Data tidak otomatis tersinkron ke admin atau perangkat lain, dan bisa hilang bila data browser dihapus.</div>
+ <div class="filt" role="group" aria-label="Filter">${[["all","Semua"],["draft","Draft"],["wa","WhatsApp dibuka"],["sent","Saya menandai sudah dikirim"]].map(f=>`<button class="btn sec sm" data-act="filt" data-f="${f[0]}" aria-pressed="${S.f===f[0]}">${f[1]}</button>`).join("")}</div>`+
+ (l.length?`<div class="grid3">${l.map(r=>{const d=r.d,sm=r.svc==="barang"?d.type:r.items.map(i=>i.name).join(", ");return `<div class="card oc"><div><span class="badge">${ST[r.st]}</span></div><h3>${SV[r.svc].n}</h3><small>${r.id} · ${new Date(r.ts).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small><div>${esc(sm)}</div><small>Tujuan: ${esc(d.dest)}</small><div class="row"><button class="btn sm" data-act="detail" data-id="${r.id}">Lihat detail</button><button class="btn sec sm" data-act="copy" data-id="${r.id}">Salin pesan lagi</button><button class="btn ghost sm" data-act="del" data-id="${r.id}">Hapus dari perangkat</button></div></div>`}).join("")}</div>`
+ :`<div class="card empty"><div class="ic" aria-hidden="true">📦</div><p>Belum ada pesanan. Mulai dengan memilih layanan.</p><a class="btn" href="#pesan">Buat Pesanan</a></div>`)};
+
+const help=()=>`<div class="ph"><h1 tabindex="-1">Bantuan</h1></div>
+<details open><summary>Bagaimana cara memesan?</summary><p>Pilih layanan, isi form, periksa pesanan, buka WhatsApp, lalu tekan Kirim.</p></details>
+<details><summary>Apakah pesanan langsung dikonfirmasi?</summary><p>Tidak. Admin memeriksa pesananmu lalu membalas lewat WhatsApp. Membuka WhatsApp belum berarti pesanan terkirim.</p></details>
+<details><summary>Berapa biaya layanan?</summary><p>Biaya diinformasikan admin setelah lokasi dan detail pesanan diperiksa. Website tidak menghitung biaya.</p></details>
+<details><summary>Area mana yang dilayani?</summary><p>Rencana area: kampus utama UNIMED dan kos di sekitarnya. Batas rinci dan titik temu dikonfirmasi admin.</p></details>
+<details><summary>Bagaimana membatalkan?</summary><p>Hubungi admin lewat WhatsApp. Syarat pembatalan menyesuaikan kondisi pesanan.</p></details>
+<h2>Aturan layanan</h2><div class="info sky">Jenis barang, batas ukuran, jam layanan, dan aturan penggantian barang masih ditetapkan tim. Antar Barang hanya untuk barang ringan dan tetap harus disetujui admin. Tanyakan admin sebelum memesan.</div>
+<a class="btn" target="_blank" rel="noopener" href="${waUrl(S.adm,"Halo Admin KampusKirim, saya ingin bertanya.")}">Masih bingung? Hubungi Admin KampusKirim</a>`;
+
+/* routing */
+const R={beranda:home,pesan:order,"pesanan-saya":hist,bantuan:help};
+function route(){const p=(location.hash||"#beranda").slice(1);const P=R[p]?p:"beranda";
+ document.querySelectorAll(".nav a[href^='#']").forEach(a=>a.getAttribute("href")==="#"+P?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"));
+ $("#v").innerHTML=R[P]();$("#wh").href=waUrl(S.adm,"Halo Admin KampusKirim, saya ingin bertanya.");
+ window.scrollTo(0,0);const h=$("#v h1");if(h){h.tabIndex=-1;h.focus({preventScroll:true})}}
+const go=s=>{S.step=s;if(location.hash!=="#pesan")location.hash="#pesan";else route()};
+function drawer(o){document.getElementById("app").classList.toggle("open",o);$("#mbtn").setAttribute("aria-expanded",o);if(o)$("#side .xbtn").focus();else $("#mbtn").focus({preventScroll:true})}
+function copy(t,boxId){const ta=$("#msgbox");const done=()=>toast("Pesan disalin. Tempel di WhatsApp lalu tekan Kirim.");
+ const fb=()=>{if(ta){ta.value=t;ta.select();try{document.execCommand("copy");done()}catch(e){toast("Salin manual dari kotak pesan.")}}};
+ try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}}
+function upd(id,st){const a=ls.get("kk_orders",[]);const r=a.find(x=>x.id===id);if(r){r.st=st;ls.set("kk_orders",a)}}
+
+document.addEventListener("click",e=>{
+ const a=e.target.closest("a[href^='#']");
+ if(a){if($("#app").classList.contains("open"))drawer(false);if(a.getAttribute("href")==="#pesan"&&S.step==="wa")S.step="pilih";setTimeout(route,0);return}
+ const b=e.target.closest("[data-act]");if(!b)return;const k=b.dataset.act,id=b.dataset.id;
+ const ords=()=>ls.get("kk_orders",[]);
+ if(k==="menu")drawer(true);else if(k==="close")drawer(false);
+ else if(k==="pick"){const s=b.dataset.s;if(S.svc!==s){S.d={name:S.d.name||"",wa:S.d.wa||""};S.items=[{}];S.svc=s;S.cid=null}persist();go("form")}
+ else if(k==="add"){S.items.push({});persist();route()}
+ else if(k==="rm"){S.items.splice(+b.dataset.i,1);persist();route()}
+ else if(k==="backPick")go("pilih");
+ else if(k==="toReview"){const er=validate();if(er.length){showErr(er);return}S.msg=buildMsg({svc:S.svc,d:S.d,items:S.items});save();go("review")}
+ else if(k==="edit")go("form");
+ else if(k==="edit2")go("review");
+ else if(k==="toWa"){if(!$("#chk").checked){$("#e_chk").textContent="Centang dulu bahwa kamu sudah memeriksa detail pesanan.";$("#chk").focus();return}const er=validate();if(er.length){go("form");setTimeout(()=>showErr(er),0);return}S.msg=buildMsg({svc:S.svc,d:S.d,items:S.items});save();go("wa")}
+ else if(k==="open"){save("wa");ls.set("kk_adm",(S.adm+1)%ADM.length);$("#after").hidden=false;toast("WhatsApp dibuka. Periksa pesan lalu tekan Kirim.")}
+ else if(k==="copy"){const r=id?ords().find(x=>x.id===id):null;copy(r?r.msg:S.msg)}
+ else if(k==="sent"){save("sent");$("#after").innerHTML=`<p>Tercatat di perangkat ini. Konfirmasi pesanan tetap menunggu balasan admin.</p><div class="row"><button class="btn" data-act="newOrder">Buat pesanan baru</button><a class="btn sec" href="#pesanan-saya">Pesanan Saya</a></div>`;toast("Tercatat: kamu menandai sudah menekan Kirim.")}
+ else if(k==="newOrder"){S.d={};S.items=[{}];S.svc="";S.cid=null;persist();go("pilih")}
+ else if(k==="filt"){S.f=b.dataset.f;route()}
+ else if(k==="detail"){S.detail=id;route()}
+ else if(k==="back"){S.detail=null;route()}
+ else if(k==="mark"){upd(id,"sent");route();toast("Ditandai di perangkat ini.")}
+ else if(k==="del"){S.del=id;$("#dlg").showModal()}
+ else if(k==="delno")$("#dlg").close();
+ else if(k==="delok"){ls.set("kk_orders",ords().filter(x=>x.id!==S.del));$("#dlg").close();S.detail=null;route();toast("Pesanan dihapus dari perangkat.")}
+});
+function sync(e){const t=e.target;if(t.id==="adm"){S.adm=+t.value;const l=$("#wal");if(l)l.href=waUrl(S.adm,S.msg);$("#wh").href=waUrl(S.adm,"Halo Admin KampusKirim, saya ingin bertanya.");return}
+ const k=t.dataset&&t.dataset.k;if(!k)return;const v=t.type==="checkbox"?t.checked:t.value;
+ if(t.dataset.i!==undefined)S.items[+t.dataset.i][k]=v;else S.d[k]=v;persist()}
+document.addEventListener("input",sync);document.addEventListener("change",sync);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#app").classList.contains("open"))drawer(false)});
+window.addEventListener("hashchange",route);
+route();
+</script>
+</body>
+</html>
