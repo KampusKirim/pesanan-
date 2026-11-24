@@ -171,7 +171,7 @@
           <span class="art-pin">${icon('pin')}</span>
           <span class="art-spark spark-main">${icon('spark')}</span>
           <span class="art-spark spark-small">${icon('spark')}</span>
-          <img src="assets/kurir.png" alt="" width="1536" height="1024" fetchpriority="high">
+          <img src="kurir.png" alt="" width="1536" height="1024" fetchpriority="high">
         </div>
       </section>
       <section class="home-section" aria-labelledby="services-title">
