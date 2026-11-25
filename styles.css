@@ -341,6 +341,58 @@ svg { display: block; flex: none; }
 .form-section { min-width: 0; padding: clamp(17px, 2.1vw, 25px); }
 .form-section > h2 { margin-bottom: 16px; }
 .section-hint { margin: -5px 0 16px; color: var(--muted); }
+.destination-picker { margin-bottom: 14px; }
+.map-point-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.map-point-option {
+  justify-content: flex-start;
+  padding: 8px 10px;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+.map-point-option:hover:not(:disabled) { border-color: var(--point-color); }
+.map-point-option[aria-pressed="true"] {
+  border-color: var(--point-color);
+  background: #f7faf8;
+  color: var(--point-color);
+  box-shadow: inset 0 0 0 1px var(--point-color);
+}
+.map-point-symbol {
+  display: grid;
+  flex: 0 0 25px;
+  place-items: center;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--point-color);
+  color: #fff;
+  font-size: .82rem;
+}
+.map-instructions { margin: 8px 0 10px; color: var(--muted); font-size: .87rem; }
+.destination-map {
+  width: 100%;
+  height: clamp(240px, 36vw, 340px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #edf5f0;
+}
+.map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; }
+.map-status { margin: 8px 0 0; color: var(--muted); font-size: .87rem; }
+.map-status.map-error { color: var(--error); }
+.cost-details {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f0f8f3;
+}
+.cost-details > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; }
+.cost-details dt { color: var(--muted); }
+.cost-details dd { margin: 0; color: var(--deep); font-weight: 700; }
+#form-cost { margin-top: 14px; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .field { min-width: 0; }
 .field-wide { grid-column: 1 / -1; }

@@ -44,13 +44,13 @@ const KampusOrders = (() => {
       title: isParcel ? 'Data pengirim' : 'Data pemesan',
       fields: [
         required('customer', 'Nama lengkap', 'Contoh: Rani Putri', { min: 2, autocomplete: 'name' }),
-        required('phone', 'Nomor WhatsApp', 'Contoh: 081234567890', { type: 'tel', autocomplete: 'tel' }),
+        required('phone', 'Nomor HP', 'Contoh: 081234567890', { type: 'tel', autocomplete: 'tel' }),
       ],
     };
     const location = isParcel ? {
       title: 'Lokasi pengambilan',
       fields: [
-        required('pickup', 'Alamat dan patokan pengambilan', 'Contoh: Gedung FT UNIMED, tunggu di lobi', { type: 'textarea', min: 5 }),
+        required('pickup', 'Detail pengambilan di titik jemput', 'Contoh: tunggu di pos satpam', { type: 'textarea', min: 5 }),
         field('pickupContact', 'Nama kontak di lokasi', { placeholder: 'Contoh: Dimas' }),
       ],
     } : {
@@ -61,21 +61,22 @@ const KampusOrders = (() => {
       ],
     };
     const destination = {
-      title: 'Lokasi tujuan',
-      fields: isParcel ? [
-        required('destination', 'Alamat dan patokan tujuan', 'Contoh: Kos Melati, pagar hijau dekat simpang', { type: 'textarea', min: 5 }),
-        required('recipient', 'Nama penerima', 'Contoh: Nisa'),
-        field('recipientPhone', 'Nomor WhatsApp penerima', { type: 'tel', placeholder: 'Jika berbeda dari pengirim' }),
-      ] : [
+      title: 'Peta titik jemput dan antar',
+      map: true,
+      fields: [
         required('destination', 'Alamat tujuan', 'Contoh: Kos Melati, Jl. Pancing No. 12', { type: 'textarea', min: 5 }),
-        required('landmark', 'Patokan lokasi tujuan', 'Contoh: pagar hijau di samping minimarket', { wide: true }),
+        required('landmark', 'Patokan lokasi tujuan', 'Contoh: Gedung B, ruang 204, atau Kos Melati', { wide: true }),
+        ...(isParcel ? [
+          required('recipient', 'Nama penerima', 'Contoh: Nisa'),
+          field('recipientPhone', 'Nomor WhatsApp penerima', { type: 'tel', placeholder: 'Jika berbeda dari pengirim' }),
+        ] : []),
       ],
     };
     const extras = {
       title: 'Waktu dan catatan',
       fields: [
         field('time', isParcel ? 'Waktu pengambilan yang diinginkan' : 'Waktu antar yang diinginkan', { type: 'datetime-local' }),
-        field('note', isParcel ? 'Catatan penanganan' : 'Catatan untuk admin atau kurir', {
+        field('note', 'Catatan untuk kurir', {
           type: 'textarea', placeholder: isParcel ? 'Contoh: simpan dokumen dalam posisi datar' : 'Contoh: hubungi saat tiba',
         }),
       ],
@@ -84,7 +85,7 @@ const KampusOrders = (() => {
       title: 'Detail barang',
       hint: 'Layanan ini untuk barang ringan. Admin akan memeriksa jenis dan ukuran barang.',
       fields: [
-        required('parcel', 'Jenis barang', 'Contoh: dokumen dan buku'),
+        required('parcel', 'Deskripsi barang', 'Contoh: dokumen dan buku', { type: 'textarea' }),
         required('quantity', 'Jumlah koli', '1', { type: 'number' }),
         field('size', 'Perkiraan ukuran', { options: ['Kecil', 'Sedang', 'Besar'] }),
       ],
@@ -155,8 +156,12 @@ const KampusOrders = (() => {
 
   const dates = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   const money = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+  const kilometers = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 });
+  const formatMoney = value => money.format(value);
+  const formatDistance = meters => kilometers.format(meters / 1000) + ' km';
   const formatDate = value => Number.isNaN(new Date(value).getTime()) || !value ? '' : dates.format(new Date(value));
   const displayPhone = value => normalizePhone(value) ? '+' + normalizePhone(value) : value;
+  const mapsLink = point => `https://www.google.com/maps?q=${point.lat},${point.lng}`;
   const localCode = order => 'KK-' + order.id.slice(0, 8).toUpperCase();
   const orderStatus = {
     draft: 'Draft',
@@ -164,17 +169,18 @@ const KampusOrders = (() => {
     sent: 'Saya menandai sudah dikirim',
   };
 
-  function summary(order) {
+  function summary(order, quote) {
     const { service, values: v, items } = order;
+    const { origin, point } = order.delivery ?? {};
     const isParcel = service === 'barang';
     const isErrand = service === 'jastip';
     return [
       { title: isParcel ? 'Pengirim' : 'Pemesan', icon: 'user', rows: [
-        ['Nama lengkap', v.customer], ['Nomor WhatsApp', displayPhone(v.phone)],
+        ['Nama lengkap', v.customer], ['Nomor HP', displayPhone(v.phone)],
       ] },
       { title: 'Detail layanan', icon: services[service].icon, rows: [
         ['Layanan', services[service].name],
-        ...(isParcel ? [['Jenis barang', v.parcel], ['Jumlah koli', v.quantity], ['Perkiraan ukuran', v.size]]
+        ...(isParcel ? [['Deskripsi barang', v.parcel], ['Jumlah koli', v.quantity], ['Perkiraan ukuran', v.size]]
           : items.map((item, index) => [`${isErrand ? 'Barang' : 'Menu'} ${index + 1}`,
             [item.name, item.quantity && item.quantity + ' buah', item.variant].filter(Boolean).join(' · ')])),
         ...(isErrand ? [['Batas anggaran barang', v.budget ? money.format(Number(v.budget)) : ''],
@@ -182,32 +188,38 @@ const KampusOrders = (() => {
       ] },
       { title: 'Lokasi pengambilan', icon: 'pin', rows: [
         ...(!isParcel ? [[isErrand ? 'Nama toko' : 'Nama penjual', v.seller]] : []),
-        ['Alamat atau patokan', v.pickup],
+        [isParcel && point ? 'Detail pengambilan' : 'Alamat atau patokan', v.pickup],
+        ...(origin ? [['Link titik jemput', mapsLink(origin)]] : []),
         ...(isParcel ? [['Nama kontak di lokasi', v.pickupContact]] : []),
       ] },
       { title: 'Lokasi tujuan', icon: 'pin', rows: [
         ['Alamat tujuan', v.destination],
-        ...(isParcel
-          ? [['Nama penerima', v.recipient], ['Nomor WhatsApp penerima', displayPhone(v.recipientPhone)]]
-          : [['Patokan lokasi', v.landmark]]),
+        ['Patokan lokasi', v.landmark],
+        ...(point ? [['Link lokasi', mapsLink(point)]] : []),
+        ...(isParcel ? [['Nama penerima', v.recipient], ['Nomor WhatsApp penerima', displayPhone(v.recipientPhone)]] : []),
       ] },
+      ...(quote ? [{ title: 'Ringkasan ongkir', icon: 'pin', rows: [
+        ['Titik jemput', quote.pickupName],
+        ['Jarak jalan', formatDistance(quote.distanceMeters)],
+        ['Ongkir', formatMoney(quote.fee)],
+      ] }] : []),
       { title: 'Waktu dan catatan', icon: 'clock', rows: [
         [isParcel ? 'Waktu pengambilan' : 'Waktu antar', formatDate(v.time)],
-        [isParcel ? 'Catatan penanganan' : 'Catatan tambahan', v.note],
+        ['Catatan untuk kurir', v.note || (quote ? '—' : '')],
       ] },
     ];
   }
 
-  function message(order) {
+  function message(order, quote) {
     const parts = [
       `Halo Admin KampusKirim, saya ingin memesan layanan ${services[order.service].name}.`,
       'Referensi lokal: ' + localCode(order),
     ];
-    for (const group of summary(order)) {
+    for (const group of summary(order, quote)) {
       const rows = group.rows.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`);
       if (rows.length) parts.push(['*' + group.title + '*', ...rows].join('\n'));
     }
-    parts.push('Mohon konfirmasi ketersediaan, biaya, serta estimasi waktu. Terima kasih.');
+    parts.push('Mohon konfirmasi ketersediaan, harga barang, pembayaran, dan estimasi waktu. Terima kasih.');
     return parts.join('\n\n');
   }
 
@@ -258,5 +270,6 @@ const KampusOrders = (() => {
   }
 
   return { admins, services, sections, itemFields, fieldError, validate, summary, message, chatUrl,
-    formatDate, localCode, orderStatus, list, save, get, remove, draft, usingMemory: () => memoryOnly };
+    formatDate, formatMoney, formatDistance, localCode, orderStatus, list, save, get, remove, draft,
+    usingMemory: () => memoryOnly };
 })();

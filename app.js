@@ -1,9 +1,17 @@
 'use strict';
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDPPL4h9XctQYKsT-S61r5HyP1M9-mg1Kw';
+const GOOGLE_MAPS_MAP_ID = 'DEMO_MAP_ID';
+const PICKUP_LOCATION = { lat: 3.608163, lng: 98.712238 };
+const PICKUP_NAME = 'Gerbang 1 UNIMED';
+const DELIVERY_RATE_PER_KM = 2000;
+const MINIMUM_DELIVERY_FEE = 2000;
+const DELIVERY_ROUNDING = 500;
+
 (() => {
   const {
     admins, services, sections, itemFields, fieldError, validate, summary, message, chatUrl,
-    formatDate, localCode, orderStatus, list, save, get, remove, draft, usingMemory,
+    formatDate, formatMoney, formatDistance, localCode, orderStatus, list, save, get, remove, draft, usingMemory,
   } = KampusOrders;
 
   const paths = {
@@ -49,10 +57,17 @@
     ['riwayat', 'list', 'Pesanan Saya'],
     ['bantuan', 'help', 'Bantuan'],
   ];
+  const mapPoints = {
+    pickup: { label: 'Titik jemput', glyph: 'J', color: '#167553', border: '#104c38' },
+    destination: { label: 'Titik antar', glyph: 'A', color: '#b42335', border: '#7c1625' },
+  };
   let filter = 'all';
   let toastTimer;
   let drawerOpen = false;
   let warnedAboutStorage = false;
+  let mapsPromise;
+  let mapsAuthFailed = false;
+  let directionsUnavailable = false;
 
   document.querySelectorAll('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); });
   menu.innerHTML = icon('menu');
@@ -75,6 +90,323 @@
     if (!save(order) && !warnedAboutStorage) {
       warnedAboutStorage = true;
       showToast('Penyimpanan browser tidak tersedia. Data hanya tersimpan selama halaman ini terbuka.');
+    }
+  }
+
+  function samePoint(first, second) {
+    return first?.lat === second?.lat && first?.lng === second?.lng;
+  }
+
+  function deliveryQuote(order) {
+    const { point, origin, distanceMeters, fee, pickupName } = order.delivery ?? {};
+    if (!Number.isFinite(point?.lat) || !Number.isFinite(point?.lng) ||
+        !Number.isFinite(origin?.lat) || !Number.isFinite(origin?.lng) ||
+        !Number.isFinite(distanceMeters) || distanceMeters < 0) return null;
+    if (order.status !== 'draft' && Number.isFinite(fee)) return { distanceMeters, fee, pickupName };
+    const price = distanceMeters / 1000 * DELIVERY_RATE_PER_KM;
+    const rounded = Math.round(price / DELIVERY_ROUNDING) * DELIVERY_ROUNDING;
+    const minimum = Math.ceil(MINIMUM_DELIVERY_FEE / DELIVERY_ROUNDING) * DELIVERY_ROUNDING;
+    const pickup = samePoint(origin, PICKUP_LOCATION) ? PICKUP_NAME : `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)}`;
+    return { distanceMeters, fee: Math.max(minimum, rounded), pickupName: pickup };
+  }
+
+  function loadGoogleMaps() {
+    if (!GOOGLE_MAPS_API_KEY) return Promise.reject(new Error('Peta belum dikonfigurasi oleh pengelola KampusKirim.'));
+    if (mapsAuthFailed) return Promise.reject(new Error('Google Maps menolak akses. Hubungi admin KampusKirim.'));
+    if (!mapsPromise) {
+      mapsPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        const params = new URLSearchParams({
+          key: GOOGLE_MAPS_API_KEY, v: 'weekly', language: 'id', region: 'ID',
+          loading: 'async', callback: 'kampusMapsReady',
+        });
+        window.kampusMapsReady = () => {
+          delete window.kampusMapsReady;
+          resolve(window.google.maps);
+        };
+        window.gm_authFailure = () => {
+          mapsAuthFailed = true;
+          reject(new Error('Google Maps menolak akses. Hubungi admin KampusKirim.'));
+          element('destination-map')?.dispatchEvent(new Event('maps-auth-error'));
+        };
+        script.onerror = () => {
+          delete window.kampusMapsReady;
+          script.remove();
+          mapsPromise = undefined;
+          reject(new Error('Peta gagal dimuat. Periksa koneksi lalu muat ulang halaman.'));
+        };
+        script.async = true;
+        script.src = 'https://maps.googleapis.com/maps/api/js?' + params;
+        document.head.append(script);
+      });
+    }
+    return mapsPromise;
+  }
+
+  async function roadDistance(maps, origin, destination) {
+    const { DirectionsService, Route } = await maps.importLibrary('routes');
+    const request = { origin, destination, travelMode: 'DRIVING' };
+    if (DirectionsService && !directionsUnavailable) {
+      try {
+        const directions = await new DirectionsService().route(request);
+        return directions.routes?.[0]?.legs?.[0]?.distance?.value;
+      } catch (error) {
+        const reason = `${error?.code ?? ''} ${error?.message ?? error}`;
+        if (!/REQUEST_DENIED|PERMISSION_DENIED|LEGACY_API_NOT_ACTIVATED|LegacyApiNotActivatedMapError/i.test(reason)) throw error;
+        // New Cloud projects use Routes API when Directions API (Legacy) is unavailable.
+        directionsUnavailable = true;
+      }
+    }
+    const { routes } = await Route.computeRoutes({ ...request, fields: ['distanceMeters'] });
+    return routes?.[0]?.distanceMeters;
+  }
+
+  function destinationMap() {
+    return `<div class="destination-picker">
+      <div class="map-point-options" role="group" aria-label="Pilih titik yang akan diubah">
+        ${Object.entries(mapPoints).map(([type, point]) => `
+          <button class="button map-point-option" id="map-point-${type}" type="button"
+            aria-controls="destination-map" aria-pressed="${type === 'destination'}" style="--point-color:${point.color}" disabled>
+            <span class="map-point-symbol" aria-hidden="true">${point.glyph}</span>
+            <span>${point.label}</span>
+          </button>`).join('')}
+      </div>
+      <p class="map-instructions" id="map-instructions" aria-live="polite">Ketuk peta untuk memilih titik antar. Penanda J dan A juga bisa digeser.</p>
+      <div class="destination-map" id="destination-map" role="region" aria-label="Peta titik jemput dan antar" aria-describedby="map-instructions"></div>
+      <div class="map-actions">
+        <button class="button button-outline" type="button" id="use-location" disabled>${icon('pin')} <span id="use-location-label">Gunakan lokasi saya untuk titik antar</span></button>
+        <button class="text-button" type="button" id="retry-route" hidden>Hitung ulang rute</button>
+      </div>
+      <p class="map-status" id="location-status" role="status" hidden></p>
+      <p class="map-status" id="route-status" role="status">Memuat peta…</p>
+      <p class="map-status" id="address-status" role="status" hidden></p>
+    </div>`;
+  }
+
+  async function setupDestinationMap(order, form, saveDraft, updateQuote) {
+    const canvas = element('destination-map');
+    const pointButtons = Object.keys(mapPoints).map(type => [type, element('map-point-' + type)]);
+    const instructions = element('map-instructions');
+    const locationButton = element('use-location');
+    const locationLabel = element('use-location-label');
+    const retryButton = element('retry-route');
+    const address = element('field-destination');
+    const routeStatus = element('route-status');
+    const locationStatus = element('location-status');
+    const addressStatus = element('address-status');
+    let routeRevision = 0;
+    let destinationRevision = 0;
+    let locationRevision = 0;
+    let activePoint = 'destination';
+    let dragging = false;
+    let mapAvailable = false;
+    const isMapActive = () => form.isConnected && mapAvailable;
+
+    function status(node, text, error = false) {
+      node.textContent = text;
+      node.hidden = !text;
+      node.classList.toggle('map-error', error);
+    }
+
+    function clearLocationRequest() {
+      locationRevision++;
+      locationButton.disabled = !isMapActive();
+      status(locationStatus, '');
+    }
+
+    function setActivePoint(type) {
+      activePoint = type;
+      const label = mapPoints[type].label.toLowerCase();
+      for (const [point, button] of pointButtons) button.setAttribute('aria-pressed', String(point === type));
+      instructions.textContent = `Ketuk peta untuk memilih ${label}. Penanda J dan A juga bisa digeser.`;
+      locationLabel.textContent = 'Gunakan lokasi saya untuk ' + label;
+      clearLocationRequest();
+    }
+
+    function mapError(text) {
+      mapAvailable = false;
+      for (const [, button] of pointButtons) button.disabled = true;
+      retryButton.hidden = true;
+      status(addressStatus, '');
+      clearLocationRequest();
+      status(routeStatus, text, true);
+    }
+
+    canvas.addEventListener('maps-auth-error', () => mapError('Google Maps menolak akses. Hubungi admin KampusKirim.'));
+
+    try {
+      const maps = await loadGoogleMaps();
+      const [{ Map }, { AdvancedMarkerElement, PinElement }, { Geocoder }] = await Promise.all([
+        maps.importLibrary('maps'), maps.importLibrary('marker'), maps.importLibrary('geocoding'),
+      ]);
+      if (!form.isConnected || mapsAuthFailed) return;
+
+      const savedOrigin = order.delivery?.origin ?? PICKUP_LOCATION;
+      const map = new Map(canvas, {
+        center: order.delivery?.point ?? savedOrigin, zoom: 15, mapId: GOOGLE_MAPS_MAP_ID,
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+      });
+      const geocoder = new Geocoder();
+      const markers = Object.fromEntries(Object.entries(mapPoints).map(([type, point]) => {
+        const pin = new AdvancedMarkerElement({ title: point.glyph + ' · ' + point.label, gmpDraggable: true });
+        pin.append(new PinElement({ background: point.color, borderColor: point.border, glyphText: point.glyph, glyphColor: '#fff' }));
+        return [type, pin];
+      }));
+      const pickup = markers.pickup;
+      pickup.position = savedOrigin;
+      pickup.map = map;
+      mapAvailable = !mapsAuthFailed;
+      if (!mapAvailable) return;
+      for (const [type, button] of pointButtons) {
+        button.disabled = false;
+        button.addEventListener('click', () => {
+          if (isMapActive() && !dragging && activePoint !== type) setActivePoint(type);
+        });
+      }
+      setActivePoint(activePoint);
+
+      async function lookupAddress(point, id) {
+        status(addressStatus, 'Mencari alamat…');
+        try {
+          const { results } = await geocoder.geocode({ location: point });
+          if (!isMapActive() || id !== destinationRevision) return;
+          const found = results[0]?.formatted_address;
+          if (!found) throw new Error('Alamat tidak ditemukan');
+          if (!address.value.trim()) {
+            address.value = found;
+            address.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          status(addressStatus, address.value.trim() === found
+            ? 'Periksa alamat tujuan dan sesuaikan bila perlu.'
+            : 'Alamat dari Google Maps: ' + found);
+        } catch {
+          if (isMapActive() && id === destinationRevision) {
+            status(addressStatus, 'Alamat otomatis tidak tersedia. Isi alamat tujuan secara manual.', true);
+          }
+        }
+      }
+
+      async function calculateRoute() {
+        const { point, origin = PICKUP_LOCATION } = order.delivery ?? {};
+        const id = ++routeRevision;
+        retryButton.hidden = true;
+        if (!point) {
+          status(routeStatus, 'Ongkir tersedia setelah titik antar dipilih.');
+          return;
+        }
+        status(routeStatus, 'Menghitung jarak jalan dan ongkir…');
+        try {
+          const distanceMeters = await roadDistance(maps, origin, point);
+          if (!isMapActive() || id !== routeRevision) return;
+          if (!Number.isFinite(distanceMeters) || distanceMeters < 0) throw new Error('Rute tidak ditemukan');
+          order.delivery = { point, origin, distanceMeters };
+          saveDraft();
+          updateQuote();
+          status(routeStatus, 'Rute kendaraan ditemukan.');
+        } catch {
+          if (!isMapActive() || id !== routeRevision) return;
+          status(routeStatus, 'Rute kendaraan tidak tersedia. Geser penanda atau hitung ulang.', true);
+          retryButton.hidden = false;
+        }
+      }
+
+      function showMarker(point) {
+        markers.destination.position = point;
+        markers.destination.map = map;
+      }
+
+      function selectDestination(point) {
+        const id = ++destinationRevision;
+        showMarker(point);
+        const previousPoint = order.delivery?.point;
+        order.delivery = { point, origin: order.delivery?.origin ?? PICKUP_LOCATION };
+        if (previousPoint && !samePoint(previousPoint, point)) address.value = '';
+        address.dispatchEvent(new Event('input', { bubbles: true }));
+        updateQuote();
+        void lookupAddress(point, id);
+        void calculateRoute();
+      }
+
+      function selectPickup(origin) {
+        pickup.position = origin;
+        order.delivery = { origin, point: order.delivery?.point };
+        saveDraft();
+        updateQuote();
+        void calculateRoute();
+      }
+
+      const selectPoint = { pickup: selectPickup, destination: selectDestination };
+      for (const [type, pin] of Object.entries(markers)) {
+        const isDestination = type === 'destination';
+        pin.addEventListener('gmp-dragstart', () => {
+          if (!isMapActive()) return;
+          dragging = true;
+          setActivePoint(type);
+          routeRevision++;
+          if (isDestination) {
+            destinationRevision++;
+            status(addressStatus, '');
+          }
+          const { point, origin = PICKUP_LOCATION } = order.delivery ?? {};
+          order.delivery = { point, origin };
+          saveDraft();
+          updateQuote();
+          status(routeStatus, 'Geser penanda ke ' + mapPoints[type].label.toLowerCase() + '.');
+          retryButton.hidden = true;
+        });
+        pin.addEventListener('gmp-dragend', () => {
+          dragging = false;
+          if (!isMapActive() || !pin.position) return;
+          const { lat, lng } = pin.position.toJSON?.() ?? pin.position;
+          selectPoint[type]({ lat, lng });
+        });
+      }
+
+      map.addListener('click', event => {
+        if (!isMapActive() || dragging || !event.latLng) return;
+        clearLocationRequest();
+        selectPoint[activePoint](event.latLng.toJSON());
+      });
+      retryButton.addEventListener('click', () => {
+        if (isMapActive() && !dragging && order.delivery?.point) void calculateRoute();
+      });
+      locationButton.addEventListener('click', () => {
+        if (!isMapActive() || dragging) return;
+        if (!navigator.geolocation || !window.isSecureContext) {
+          status(locationStatus, 'Lokasi perangkat memerlukan browser yang mendukung dan halaman HTTPS atau localhost. Pilih titik di peta.', true);
+          return;
+        }
+        const id = ++locationRevision;
+        locationButton.disabled = true;
+        status(locationStatus, 'Mencari lokasi perangkat…');
+        navigator.geolocation.getCurrentPosition(({ coords }) => {
+          if (!isMapActive() || id !== locationRevision) return;
+          clearLocationRequest();
+          const point = { lat: coords.latitude, lng: coords.longitude };
+          selectPoint[activePoint](point);
+          map.panTo(point);
+        }, error => {
+          if (!isMapActive() || id !== locationRevision) return;
+          locationButton.disabled = false;
+          const text = error.code === 1
+            ? 'Izin lokasi ditolak. Izinkan akses lokasi di browser atau pilih titik di peta.'
+            : 'Lokasi perangkat tidak ditemukan. Coba lagi atau pilih titik di peta.';
+          status(locationStatus, text, true);
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      });
+
+      const point = order.delivery?.point;
+      if (point) {
+        showMarker(point);
+        if (!address.value.trim()) void lookupAddress(point, destinationRevision);
+      }
+      if (deliveryQuote(order)) status(routeStatus, 'Titik jemput dan tujuan tersimpan.');
+      else void calculateRoute();
+    } catch (error) {
+      if (form.isConnected) mapError(error.message && !GOOGLE_MAPS_API_KEY
+        ? error.message
+        : mapsAuthFailed ? 'Google Maps menolak akses. Hubungi admin KampusKirim.'
+          : 'Peta gagal dimuat. Periksa koneksi lalu muat ulang halaman.');
     }
   }
 
@@ -171,7 +503,7 @@
           <span class="art-pin">${icon('pin')}</span>
           <span class="art-spark spark-main">${icon('spark')}</span>
           <span class="art-spark spark-small">${icon('spark')}</span>
-          <img src="kurir.png" alt="" width="1536" height="1024" fetchpriority="high">
+          <img src="assets/kurir.png" alt="" width="1536" height="1024" fetchpriority="high">
         </div>
       </section>
       <section class="home-section" aria-labelledby="services-title">
@@ -185,7 +517,7 @@
       </section>
       <section class="home-section area-panel">
         <span class="icon-tile green">${icon('pin')}</span>
-        <div><h2>Area layanan</h2><p>Kampus utama UNIMED dan kos sekitarnya. Admin akan mengecek jangkauan, biaya, dan estimasi untuk pesananmu.</p></div>
+          <div><h2>Area layanan</h2><p>Kampus utama UNIMED dan kos sekitarnya. Pilih tujuan di peta untuk melihat estimasi ongkir.</p></div>
         <a class="button button-outline" href="#bantuan">Lihat Bantuan</a>
       </section>`;
   }
@@ -193,7 +525,7 @@
   function servicePicker() {
     return heading('Layanan apa yang kamu butuhkan?', 'Pilih satu layanan untuk mulai mengisi detail pesanan.') +
       `<section class="picker" aria-label="Pilihan layanan">${cards(true)}</section>` +
-      notice('Admin akan mengonfirmasi ketersediaan, biaya, dan estimasi melalui WhatsApp. <a href="#bantuan">Lihat pertanyaan umum.</a>');
+      notice('Harga barang dan pembayaran dikonfirmasi lewat WhatsApp. <a href="#bantuan">Lihat pertanyaan umum.</a>');
   }
 
   function progress(current) {
@@ -238,6 +570,13 @@
     </div>`).join('');
   }
 
+  function costDetails(quote) {
+    return `<dl class="cost-details">
+      <div><dt>Jarak jalan</dt><dd>${quote ? formatDistance(quote.distanceMeters) : '—'}</dd></div>
+      <div><dt>Ongkir</dt><dd>${quote ? formatMoney(quote.fee) : '—'}</dd></div>
+    </dl>`;
+  }
+
   function formView(order) {
     const layout = sections(order.service);
     page.innerHTML = heading('Form ' + services[order.service].name, 'Kolom bertanda * wajib diisi.') + progress(1) +
@@ -245,9 +584,11 @@
         <form class="order-form" id="order-form" novalidate>
           ${layout.map(section => `<section class="surface form-section">
             <h2>${section.title}</h2>${section.hint ? `<p class="section-hint">${section.hint}</p>` : ''}
+            ${section.map ? destinationMap() : ''}
             ${section.items ? `<div id="items">${renderItems(order)}</div>
               <button class="button button-outline add-item" type="button" id="add-item">${icon('plus')} Tambah item</button>` :
               `<div class="field-grid">${section.fields.map(spec => field(spec, order.values[spec.name])).join('')}</div>`}
+            ${section.map ? `<div id="form-cost" aria-live="polite">${costDetails(deliveryQuote(order))}</div>` : ''}
           </section>`).join('')}
           <p class="form-alert" id="form-alert" role="alert" hidden></p>
           <div class="actions">
@@ -259,12 +600,23 @@
           <span class="icon-tile ${services[order.service].color}">${icon(services[order.service].icon)}</span>
           <h2>${services[order.service].name}</h2>
           <p>${services[order.service].description}</p>
-          <p class="muted">Biaya dan estimasi dikonfirmasi admin melalui WhatsApp.</p>
+          <p class="muted">Harga barang dan pembayaran dikonfirmasi lewat WhatsApp.</p>
           <p class="aside-note">Draf tersimpan di browser ini saat kamu mengisi formulir.</p>
         </aside>
       </div>`;
 
     const form = element('order-form');
+    const alert = element('form-alert');
+    const costs = element('form-cost');
+    function updateQuote() {
+      const quote = deliveryQuote(order);
+      costs.innerHTML = costDetails(quote);
+      if (quote && alert.dataset.routeError) {
+        alert.hidden = true;
+        delete alert.dataset.routeError;
+      }
+    }
+
     function readForm() {
       const data = new FormData(form);
       for (const section of layout) {
@@ -332,20 +684,28 @@
         if (input.name) displayError(input.name, errors[input.name] ?? '');
       }
       const firstError = form.querySelector('[aria-invalid="true"]');
-      const alert = element('form-alert');
-      alert.hidden = !Object.keys(errors).length;
-      if (!alert.hidden) {
+      delete alert.dataset.routeError;
+      if (Object.keys(errors).length) {
+        alert.hidden = false;
         alert.textContent = 'Periksa kolom yang ditandai sebelum melanjutkan.';
         (firstError || element('add-item'))?.focus();
+        return;
+      }
+      if (!deliveryQuote(order)) {
+        alert.hidden = false;
+        alert.dataset.routeError = 'true';
+        alert.textContent = 'Pilih titik antar dan tunggu sampai ongkir tersedia.';
+        element('destination-map').scrollIntoView({ block: 'center' });
         return;
       }
       saveDraft();
       go('review/' + order.id);
     });
+    void setupDestinationMap(order, form, saveDraft, updateQuote);
   }
 
-  function summaryCards(order) {
-    return `<div class="summary-grid">${summary(order).map(group => `
+  function summaryCards(order, quote) {
+    return `<div class="summary-grid">${summary(order, quote).map(group => `
       <section class="surface summary-card">
         <h2>${icon(group.icon)} ${group.title}</h2>
         <dl>${group.rows.map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value || '—')}</dd></div>`).join('')}</dl>
@@ -354,16 +714,20 @@
 
   function reviewView(order) {
     const firstChoice = admins.find(admin => admin.number === order.admin) || admins[0];
+    const quote = deliveryQuote(order);
+    const canOrder = Boolean(quote) && !Object.keys(validate(order)).length;
     page.innerHTML = heading('Periksa pesananmu', 'Cek detail dan pilih admin yang akan kamu hubungi.') + progress(2) +
       `<div class="order-layout review-layout">
         ${summaryCards(order)}
         <form class="surface order-aside review-actions" id="review-form">
-          <h2>Lanjut ke WhatsApp</h2>
-          <p>Admin akan mengonfirmasi biaya, ketersediaan, dan estimasi setelah menerima pesanmu.</p>
+          <h2>Ringkasan ongkir</h2>
+          ${costDetails(quote)}
+          <p>Harga barang dan pembayaran dikonfirmasi lewat WhatsApp.</p>
+          ${canOrder ? '' : '<p>Lengkapi detail dan pilih tujuan lewat tombol Ubah pesanan.</p>'}
           <label class="field-label" for="admin">Admin tujuan</label>
           <select name="admin" id="admin">${admins.map(admin => `<option value="${admin.number}" ${admin === firstChoice ? 'selected' : ''}>${admin.label}</option>`).join('')}</select>
-          <label class="checkbox-line"><input type="checkbox" required id="review-confirm"><span>Saya sudah memeriksa detail pesanan.</span></label>
-          <button class="button button-primary" id="launch-chat" type="submit" disabled>${icon('whatsapp')} Lanjut ke WhatsApp</button>
+          <label class="checkbox-line"><input type="checkbox" required id="review-confirm" ${canOrder ? '' : 'disabled'}><span>Saya sudah memeriksa detail pesanan.</span></label>
+          <button class="button button-primary" id="launch-chat" type="submit" disabled>${icon('whatsapp')} Pesan via WhatsApp</button>
           <a class="button button-outline" href="#form/${order.service}/${order.id}">Ubah pesanan</a>
         </form>
       </div>`;
@@ -376,18 +740,19 @@
         persist(order);
       }
     });
-    confirm.addEventListener('change', () => { launch.disabled = !confirm.checked; });
+    confirm.addEventListener('change', () => { launch.disabled = !canOrder || !confirm.checked; });
     element('review-form').addEventListener('submit', event => {
       event.preventDefault();
       const admin = admins.find(item => item.number === adminSelect.value);
-      if (!admin || !confirm.checked || Object.keys(validate(order)).length) return;
+      if (!admin || !confirm.checked || !canOrder) return;
       const markedSent = order.status === 'sent' && order.admin === admin.number;
       const prepared = {
         ...order,
         status: markedSent ? 'sent' : 'opened',
         admin: admin.number,
-        message: order.message || message(order),
-        templateVersion: 1,
+        delivery: { ...order.delivery, fee: quote.fee, pickupName: quote.pickupName },
+        message: order.message || message(order, quote),
+        templateVersion: order.message ? order.templateVersion : 3,
         openedAt: new Date().toISOString(),
         markedSentAt: markedSent ? order.markedSentAt : undefined,
       };
@@ -489,7 +854,7 @@
   function historyDetail(order) {
     page.innerHTML = heading('Detail pesanan', localCode(order) + ' · ' + formatDate(order.createdAt)) +
       `<div class="detail-status">${badge(order)}</div>
-      ${summaryCards(order)}
+      ${summaryCards(order, deliveryQuote(order))}
       ${order.message ? `<details class="surface message-details"><summary>Template pesan WhatsApp</summary>
         <pre>${escape(order.message)}</pre></details>` : ''}
       <div class="actions detail-actions">
@@ -506,7 +871,7 @@
   const questions = [
     ['Bagaimana cara memesan?', 'Pilih layanan, isi detail, dan periksa pesanan. Buka WhatsApp dari halaman ringkasan, lalu tekan Kirim di chat admin.'],
     ['Kapan pesanan dikonfirmasi?', 'Setelah pesan diterima, admin akan memeriksa dan membalas lewat WhatsApp.'],
-    ['Berapa biaya layanannya?', 'Admin akan memberi tahu biaya setelah memeriksa detail pesanan, lokasi, dan ketersediaan.'],
+    ['Berapa ongkirnya?', `Ongkir dihitung dari jarak jalan antara titik jemput dan tujuan yang dipilih di peta dengan tarif ${formatMoney(DELIVERY_RATE_PER_KM)} per km. Harga barang dan pembayaran dikonfirmasi lewat WhatsApp.`],
     ['Area mana yang dilayani?', 'Kampus utama UNIMED dan kos di sekitarnya. Tanyakan ke admin apakah titik pengambilan dan tujuanmu terjangkau.'],
     ['Barang apa saja yang dapat diantar?', 'Layanan berfokus pada barang ringan, seperti dokumen, buku, dan alat tulis. Tanyakan dahulu untuk barang besar, rapuh, bernilai tinggi, atau yang perlu penanganan khusus.'],
     ['Bagaimana jika barang jastip habis?', 'Admin akan menghubungimu untuk meminta persetujuan, kecuali kamu sudah mengizinkan penggantian dengan barang serupa di formulir.'],
@@ -551,12 +916,12 @@
       const existing = id ? get(id) : list().find(order => order.service === key && order.status === 'draft');
       if (id && existing?.service !== key) missing();
       else if (existing && existing.status !== 'draft') {
-        formView({ ...draft(key), values: { ...existing.values }, items: existing.items.map(item => ({ ...item })) });
+        formView({ ...draft(key), values: { ...existing.values }, items: existing.items.map(item => ({ ...item })), delivery: existing.delivery });
       } else formView(existing || draft(key));
     } else if (route === 'review') {
       const order = get(key);
       if (!order) missing();
-      else if (Object.keys(validate(order)).length) {
+      else if (order.status === 'draft' && (Object.keys(validate(order)).length || !deliveryQuote(order))) {
         location.replace('#form/' + order.service + '/' + order.id);
         return;
       } else reviewView(order);
